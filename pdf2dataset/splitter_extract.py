@@ -25,7 +25,7 @@ from .extraction_task import ExtractionTask
 # TODO: Create a task result namedtuple
 
 
-class TextExtraction:
+class SplitterTextExtraction:
     _path_pat = r'((?P<path>.+)_(?P<page>(-?\d+|doc))(.txt|_error.log))'
 
     def __init__(
@@ -101,8 +101,9 @@ class TextExtraction:
         task, result, error = task_result
 
         text = None
+        img_encoded = None
         if result is not None:
-            text = result
+            text, img_encoded = result
             is_error = False
 
         elif error is not None:
@@ -113,11 +114,11 @@ class TextExtraction:
             raise RuntimeError("Processing failed and no errors detected!")
 
         tmp_file = self._get_savingpath(task, is_error)
-        return tmp_file, text, is_error
+        return tmp_file, text, img_encoded, is_error
 
     @staticmethod
     def _preprocess_path(df):  # Side-effect
-        parsed = df['path'].str.extract(TextExtraction._path_pat)
+        parsed = df['path'].str.extract(SplitterTextExtraction._path_pat)
 
         df['page'] = parsed['page'].astype('int16')
         df['path'] = parsed['path'] + '.pdf'
@@ -128,8 +129,8 @@ class TextExtraction:
         df = pd.DataFrame()
 
         if texts:
-            path, texts = zip(*texts)
-            df = pd.DataFrame({'path': path, 'text': texts, 'error': ''},
+            path, texts, imgs_preprocessed = zip(*texts)
+            df = pd.DataFrame({'path': path, 'text': texts, 'img': imgs_preprocessed, 'error': ''},
                               dtype='str')
 
         if errors:
@@ -138,12 +139,12 @@ class TextExtraction:
             df = pd.concat([
                 df,
                 pd.DataFrame(
-                    {'path': path, 'text': '', 'error': errors}, dtype='str'
+                    {'path': path, 'text': '', 'img': '', 'error': errors}, dtype='str'
                 ),
             ])
 
         df = self._preprocess_path(df)
-        df = df[['path', 'page', 'text', 'error']]
+        df = df[['path', 'page', 'text', 'img', 'error']]
 
         with self._df_lock:
             fastparquet.write(
@@ -178,7 +179,7 @@ class TextExtraction:
                     if isinstance(range_pages, Exception):
                         raise range_pages
 
-                    new_tasks = [ExtractionTask(doc, p, self.lang)
+                    new_tasks = [ExtractionTask(doc, p, self.lang, img_column='yes')
                                  for p in range_pages]
                     tasks += new_tasks
                     pbar.update(len(new_tasks))
@@ -258,16 +259,16 @@ class TextExtraction:
                     if isinstance(task_result, Exception):
                         raise task_result
 
-                    path, text, is_error = self._get_savinginfo(task_result)
+                    path, text, img_preprocessed, is_error = self._get_savinginfo(task_result)
 
                     if not is_error:
-                        texts.append((path, text))
+                        texts.append((path, text, img_preprocessed))
                     else:
                         errors.append((path, text))
 
                     if self.tmp_dir:
                         thread_fs.append(
-                            thread_exe.submit(path.write_text, text)
+                            thread_exe.submit(path.write_text, text, img_preprocessed)
                         )
 
                     if len(texts) + len(errors) >= self._chunk_df_size:
@@ -275,7 +276,7 @@ class TextExtraction:
                         thread_fs.append(
                             thread_exe.submit(self._append_df, texts, errors)
                         )
-                        texts, errors = [], []
+                        texts, errors = [], [], []
 
             if texts or errors:
                 thread_fs.append(

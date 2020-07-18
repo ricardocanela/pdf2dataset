@@ -1,5 +1,6 @@
 import argparse
 from . import TextExtraction
+from . import SplitterTextExtraction
 
 
 def main():
@@ -31,6 +32,14 @@ def main():
         help='Tesseract language'
     )
 
+    # Splitter
+    parser.add_argument(
+        '--add-img-column',
+        type=str,
+        default='no',
+        help='Add an extra column with the encoded image to the dataframe'
+    )
+
     # Ray
     parser.add_argument(
         '--num-cpus',
@@ -57,7 +66,13 @@ def main():
 
     args = parser.parse_args()
 
-    extraction = TextExtraction(**vars(args))
+    if vars(args)['add_img_column'] == 'yes':
+        print('SplitterTextExtraction')
+        extraction = SplitterTextExtraction(**vars(args))
+    else:
+        print('TextExtraction')
+        extraction = TextExtraction(**vars(args))
+    
     extraction.apply()
 
     print(f"Results saved to '{extraction.results_file}'!")
