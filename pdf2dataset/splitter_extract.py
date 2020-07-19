@@ -42,7 +42,7 @@ class SplitterTextExtraction:
         self.lang = lang
 
         self._df_lock = threading.Lock()
-        self._chunk_df_size = 10000  # Dask default
+        self._chunk_df_size = 30000  # Dask default
 
         ray.init(ignore_reinit_error=True, **kwargs)
         print()  # Shame
