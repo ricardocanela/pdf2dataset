@@ -276,7 +276,7 @@ class SplitterTextExtraction:
                         thread_fs.append(
                             thread_exe.submit(self._append_df, texts, errors)
                         )
-                        texts, errors = [], [], []
+                        texts, errors = [], []
 
             if texts or errors:
                 thread_fs.append(
