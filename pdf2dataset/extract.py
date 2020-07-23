@@ -31,7 +31,8 @@ class TextExtraction:
 
     def __init__(
         self, input_dir, results_file='', *,
-        tmp_dir='', lang='por', ocr=False, small=False, add_img_column=False, **kwargs
+        tmp_dir='', lang='por', ocr=False, small=False, 
+        add_img_column=False, **kwargs
     ):
 
         self.input_dir = Path(input_dir).resolve()
@@ -117,7 +118,6 @@ class TextExtraction:
 
         tmp_file = self._get_savingpath(task, is_error)
 
-
         return tmp_file, text, is_error
 
     @staticmethod
@@ -134,13 +134,14 @@ class TextExtraction:
 
         if texts:
             if self.add_img_column:
-                path, texts, imgs_preprocessed = zip(*texts)	
-                df = pd.DataFrame({'path': path, 'text': texts, 'img': imgs_preprocessed, 'error': ''},
-                              dtype='str')
+                path, texts, imgs_preprocessed = zip(*texts)
+                df = pd.DataFrame({'path': path, 'text': texts, 
+                                   'img': imgs_preprocessed, 'error': ''},
+                                    dtype='str')
             else:
                 path, texts = zip(*texts)
                 df = pd.DataFrame({'path': path, 'text': texts, 'error': ''},
-                              dtype='str')
+                                    dtype='str')
 
         if errors:
             path, errors = zip(*errors)
@@ -148,22 +149,22 @@ class TextExtraction:
             if self.add_img_column:
                 df = pd.concat([
                     df,
-                    pd.DataFrame(	
-                        {'path': path, 'text': '', 'img': '', 'error': errors}, dtype='str'
-                    ),
+                    pd.DataFrame(
+                        {'path': path, 'text': '', 'img': '', 
+                         'error': errors}, dtype='str'),
                 ])
-            else:    
+            else:
                 df = pd.concat([
                     df,
                     pd.DataFrame(
-                        {'path': path, 'text': '', 'error': errors}, dtype='str'
-                    ),
+                        {'path': path, 'text': '', 
+                         'error': errors}, dtype='str'),
                 ])
-    
+
         df = self._preprocess_path(df)
-    
+
         if self.add_img_column:
-            df = df[['path', 'page', 'text', 'img', 'error']]	
+            df = df[['path', 'page', 'text', 'img', 'error']]
         else:
             df = df[['path', 'page', 'text', 'error']]
 
@@ -216,7 +217,8 @@ class TextExtraction:
                 for doc, range_pages in zip(docs, results):
                     new_tasks = [
                         ExtractionTask(doc, doc.read_bytes(), p,
-                                       self.lang, self.ocr, self.add_img_column)
+                                       self.lang, self.ocr, 
+                                       self.add_img_column)
                         for p in range_pages
                     ]
                     tasks += new_tasks
