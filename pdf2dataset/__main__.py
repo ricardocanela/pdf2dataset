@@ -37,6 +37,14 @@ def main():
         help="'pytesseract' if true, else 'pdftotext'. default: false"
     )
 
+    # Splitter
+    parser.add_argument(
+        '--add-img-column',
+        type=bool,
+        default=False,
+        help='Add an extra column with the encoded image to the dataframe. default: false'
+    )
+
     # Ray
     parser.add_argument(
         '--num-cpus',
