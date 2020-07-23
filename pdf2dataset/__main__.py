@@ -42,8 +42,8 @@ def main():
         '--add-img-column',
         type=bool,
         default=False,
-        help='Add an extra column with the encoded image to the' \
-             'dataframe. default: false'
+        help=('Add an extra column with the encoded image to the ',
+              'dataframe. default: false')
     )
 
     # Ray

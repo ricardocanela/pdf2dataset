@@ -31,7 +31,7 @@ class TextExtraction:
 
     def __init__(
         self, input_dir, results_file='', *,
-        tmp_dir='', lang='por', ocr=False, small=False, 
+        tmp_dir='', lang='por', ocr=False, small=False,
         add_img_column=False, **kwargs
     ):
 
@@ -135,13 +135,13 @@ class TextExtraction:
         if texts:
             if self.add_img_column:
                 path, texts, imgs_preprocessed = zip(*texts)
-                df = pd.DataFrame({'path': path, 'text': texts, 
+                df = pd.DataFrame({'path': path, 'text': texts,
                                    'img': imgs_preprocessed, 'error': ''},
-                                    dtype='str')
+                                  dtype='str')
             else:
                 path, texts = zip(*texts)
                 df = pd.DataFrame({'path': path, 'text': texts, 'error': ''},
-                                    dtype='str')
+                                  dtype='str')
 
         if errors:
             path, errors = zip(*errors)
@@ -150,14 +150,14 @@ class TextExtraction:
                 df = pd.concat([
                     df,
                     pd.DataFrame(
-                        {'path': path, 'text': '', 'img': '', 
+                        {'path': path, 'text': '', 'img': '',
                          'error': errors}, dtype='str'),
                 ])
             else:
                 df = pd.concat([
                     df,
                     pd.DataFrame(
-                        {'path': path, 'text': '', 
+                        {'path': path, 'text': '',
                          'error': errors}, dtype='str'),
                 ])
 
@@ -217,7 +217,7 @@ class TextExtraction:
                 for doc, range_pages in zip(docs, results):
                     new_tasks = [
                         ExtractionTask(doc, doc.read_bytes(), p,
-                                       self.lang, self.ocr, 
+                                       self.lang, self.ocr,
                                        self.add_img_column)
                         for p in range_pages
                     ]

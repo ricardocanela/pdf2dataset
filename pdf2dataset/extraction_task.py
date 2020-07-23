@@ -13,8 +13,8 @@ import base64
 
 class ExtractionTask:
 
-    def __init__(self, doc, doc_bin, page, lang='por', 
-                ocr=False, img_column=False):
+    def __init__(self, doc, doc_bin, page, lang='por',
+                 ocr=False, img_column=False):
         self.doc = doc
         self.doc_bin = doc_bin
         self.page = page
