@@ -103,11 +103,7 @@ class TextExtraction:
 
         text = None
         if result is not None:
-            if self.add_img_column:
-                img_encoded = None
-                text, img_encoded = result
-            else:
-                text = result
+            text = result
             is_error = False
 
         elif error is not None:
@@ -121,10 +117,8 @@ class TextExtraction:
 
         tmp_file = self._get_savingpath(task, is_error)
 
-        if self.add_img_column:
-            return tmp_file, text, img_encoded, is_error
-        else:
-            return tmp_file, text, is_error
+
+        return tmp_file, text, is_error
 
     @staticmethod
     def _preprocess_path(df):  # Side-effect
@@ -142,6 +136,7 @@ class TextExtraction:
             if self.add_img_column:
                 path, texts, imgs_preprocessed = zip(*texts)	
                 df = pd.DataFrame({'path': path, 'text': texts, 'img': imgs_preprocessed, 'error': ''},
+                              dtype='str')
             else:
                 path, texts = zip(*texts)
                 df = pd.DataFrame({'path': path, 'text': texts, 'error': ''},
@@ -221,7 +216,7 @@ class TextExtraction:
                 for doc, range_pages in zip(docs, results):
                     new_tasks = [
                         ExtractionTask(doc, doc.read_bytes(), p,
-                                       self.lang, self.ocr)
+                                       self.lang, self.ocr, self.add_img_column)
                         for p in range_pages
                     ]
                     tasks += new_tasks
@@ -303,7 +298,10 @@ class TextExtraction:
                     path, text, is_error = self._get_savinginfo(result)
 
                     if not is_error:
-                        texts.append((path, text))
+                        if self.add_img_column:
+                            texts.append((path, text[0], text[1]))
+                        else:
+                            texts.append((path, text))
                     else:
                         errors.append((path, text))
 
