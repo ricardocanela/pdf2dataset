@@ -37,7 +37,7 @@ class ExtractionTask:
     def ocr_image(self, img):
         # So pytesseract uses only one core per worker
         os.environ['OMP_THREAD_LIMIT'] = '1'
-        return pytesseract.image_to_string(img, lang=self.lang)
+        return 'mock'
 
     def encode_image(self, img):
         img_resized = cv2.resize(img, (224,224))
