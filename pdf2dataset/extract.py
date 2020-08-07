@@ -34,35 +34,38 @@ class TextExtraction:
         self, input_dir, results_file='', *,
         tmp_dir='', lang='por', ocr=False, small=False,
         add_img_column=False,
-        chunksize=None, chunk_df_size=10000, **kwargs
+        chunksize=None, chunk_df_size=10000, check_inputdir=True,
+        max_docs_memory=3000, **ray_params
     ):
 
         self.input_dir = Path(input_dir).resolve()
-
         self.results_file = Path(results_file).resolve()
-        self.ray_params = kwargs
+
+        if (check_inputdir and
+                (not (self.input_dir.exists() and self.input_dir.is_dir()))):
+            raise RuntimeError(f"Invalid input_dir: '{self.input_dir}',"
+                               " it must exists and be a directory")
 
         if not small:
             if not results_file:
-                raise RuntimeError(
-                    "If not using 'small', 'results_file' is mandatory"
-                )
+                raise RuntimeError("If not using 'small' arg,"
+                                   " 'results_file' is mandatory")
 
             if self.results_file.exists():
                 logging.warning(f'{results_file} already exists!'
                                 ' Results will be appended to it!')
 
-        self.num_cpus = kwargs.get('num_cpus') or os.cpu_count()
-
-        # Keep str and not Path, custom behaviour if is empty
+        # Keep str and not Path, custom behaviour if is empty string
         self.tmp_dir = tmp_dir
 
+        self.num_cpus = ray_params.get('num_cpus') or os.cpu_count()
+        self.ray_params = ray_params
         self.chunksize = chunksize
         self.small = small
         self.lang = lang
         self.ocr = ocr
         self.add_img_column = add_img_column
-
+        self.max_docs_memory = max_docs_memory
         self._df_lock = threading.Lock()
         self.chunk_df_size = chunk_df_size
 
@@ -92,7 +95,11 @@ class TextExtraction:
             error_suffix = f'_{task.page}_error.log'
             name = output_path.stem + error_suffix
 
-        return output_path.with_name(name)
+        if self.add_img_column:
+            name_img = f'{output_path.stem}_{task.page}_img.txt'
+            return (output_path.with_name(name), output_path.with_name(name_img))
+        else:
+            return output_path.with_name(name)
 
     def _get_savinginfo(self, task_result):
         '''
@@ -196,13 +203,11 @@ class TextExtraction:
 
         return pages
 
-    def _gen_tasks(self, docs_or_tasks):
+    def _gen_tasks(self, docs):
         '''
         Returns tasks to be processed.
         For faulty documents, only the page -1 will be available
         '''
-        docs = docs_or_tasks
-
         # 10 because this is a fast operation
         chunksize = int(max(1, (len(docs)/self.num_cpus)//10))
 
@@ -230,12 +235,21 @@ class TextExtraction:
             for is_error in (True, False):
                 filename = self._get_savingpath(task, is_error)
 
-                if filename.exists():
-                    text = filename.read_text()
-                    if is_error:
-                        return (task, None, text)  # TODO: Task result
+                if self.add_img_column:
+                    if filename[0].exists() and filename[1].exists():
+                        text = filename[0].read_text()
+                        image = filename[1].read_text().encode()
+                        if is_error:
+                            return (task, (None, None), text)  # TODO: Task result
 
-                    return (task, text, None)  # TODO: Task result
+                        return (task, (text, image), None)  # TODO: Task result
+                else:
+                    if filename.exists():
+                        text = filename.read_text()
+                        if is_error:
+                            return (task, None, text)  # TODO: Task result
+
+                        return (task, text, None)  # TODO: Task result
 
             return None
 
@@ -331,16 +345,24 @@ class TextExtraction:
 
                 if not is_error:
                     if self.add_img_column:
-                        texts.append((path, text[0], text[1]))
+                        texts.append((path[0], text[0], text[1]))
                     else:
                         texts.append((path, text))
                 else:
                     errors.append((path, text))
 
                 if self.tmp_dir:
-                    thread_fs.append(
-                        thread_exec.submit(path.write_text, text)
-                    )
+                    if self.add_img_column:
+                        thread_fs.append(
+                            thread_exec.submit(path[0].write_text, text[0])
+                        )
+                        thread_fs.append(
+                            thread_exec.submit(path[1].write_text, text[1].decode())
+                        )
+                    else:
+                        thread_fs.append(
+                            thread_exec.submit(path.write_text, text)
+                        )
 
                 if len(texts) + len(errors) >= self.chunk_df_size:
                     # Persist to disk, aiming large amount of data
@@ -399,7 +421,8 @@ class TextExtraction:
 
         if self.chunksize is None:
             chunk_by_cpu = (len(not_processed)/self.num_cpus) / 100
-            self.chunksize = int(max(1, chunk_by_cpu))
+            max_chunksize = self.max_docs_memory // self.num_cpus
+            self.chunksize = int(max(1, min(chunk_by_cpu, max_chunksize)))
 
         if len(processed):
             logging.warning(

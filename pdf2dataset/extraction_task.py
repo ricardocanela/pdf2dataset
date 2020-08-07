@@ -36,7 +36,6 @@ class ExtractionTask:
     def copy(self):
         return copy.copy(self)
 
-
     def preprocess_image(self, img):
         tsh = np.array(img.convert('L'))
         tsh = cv2.adaptiveThreshold(
