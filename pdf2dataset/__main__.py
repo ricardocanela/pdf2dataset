@@ -41,14 +41,18 @@ def main():
         type=int,
         help="Chunksize to use while processing pages, otherwise is calculated"
     )
-
-    # Splitter
     parser.add_argument(
         '--add-img-column',
         type=bool,
         default=False,
         help=('Add an extra column with the encoded image to the ',
               'dataframe. default: false')
+    )
+    parser.add_argument(
+        '--img-size',
+        type=str,
+        default=None,
+        help='Image size for resize before encode. Example: --img-size 224x224'
     )
 
     # Ray

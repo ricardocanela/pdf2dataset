@@ -15,13 +15,14 @@ import base64
 class ExtractionTask:
 
     def __init__(self, doc, page, doc_bin=None, *, lang='por',
-                 ocr=False, img_column=False):
+                 ocr=False, img_column=False, img_size=None):
         self.doc = doc
         self.doc_bin = doc_bin
         self.page = page
         self.lang = lang
         self.ocr = ocr
         self.img_column = img_column
+        self.img_size = img_size
 
     def load_bin(self, enforce=False):
         '''
@@ -59,6 +60,10 @@ class ExtractionTask:
         return pytesseract.image_to_string(img, lang=self.lang)
 
     def encode_image(self, img):
+        if self.img_size:
+            img_size = (int(self.img_size.split('x')[0]),
+                        int(self.img_size.split('x')[1]))
+            img = cv2.resize(img, img_size)
         img_encoded = cv2.imencode('.jpg', img)[1].tostring()
         img_as_b64 = base64.b64encode(img_encoded)
         return img_as_b64
