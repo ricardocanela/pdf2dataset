@@ -97,7 +97,8 @@ class TextExtraction:
 
         if self.add_img_column:
             name_img = f'{output_path.stem}_{task.page}_img.txt'
-            return (output_path.with_name(name), output_path.with_name(name_img))
+            return (output_path.with_name(name),
+                    output_path.with_name(name_img))
         else:
             return output_path.with_name(name)
 
@@ -240,9 +241,11 @@ class TextExtraction:
                         text = filename[0].read_text()
                         image = filename[1].read_text().encode()
                         if is_error:
-                            return (task, (None, None), text)  # TODO: Task result
+                            return (task, (None, None), text)
+                            # TODO: Task result
 
-                        return (task, (text, image), None)  # TODO: Task result
+                        return (task, (text, image), None)
+                        # TODO: Task result
                 else:
                     if filename.exists():
                         text = filename.read_text()
@@ -357,7 +360,8 @@ class TextExtraction:
                             thread_exec.submit(path[0].write_text, text[0])
                         )
                         thread_fs.append(
-                            thread_exec.submit(path[1].write_text, text[1].decode())
+                            thread_exec.submit(path[1].write_text,
+                                               text[1].decode())
                         )
                     else:
                         thread_fs.append(

@@ -59,8 +59,7 @@ class ExtractionTask:
         return pytesseract.image_to_string(img, lang=self.lang)
 
     def encode_image(self, img):
-        img_resized = cv2.resize(img, (224, 224))
-        img_encoded = cv2.imencode('.jpg', img_resized)[1].tostring()
+        img_encoded = cv2.imencode('.jpg', img)[1].tostring()
         img_as_b64 = base64.b64encode(img_encoded)
         return img_as_b64
 
